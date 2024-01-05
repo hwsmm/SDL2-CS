@@ -153,6 +153,9 @@ jobs:
   build-android:
     name: android
     runs-on: ubuntu-20.04
+    env:
+        NDK_VER: 23.1.7779620
+        PLATFORM_VER: android-34
     steps:
     - uses: actions/checkout@v3
       with:
@@ -161,47 +164,52 @@ jobs:
     - uses: actions/checkout@v3
       with:
         path: 'SDL2-CS'
-    - name: Setup JDK 11
+    - name: Setup JDK
       uses: actions/setup-java@v3
       with:
         distribution: microsoft
-        java-version: 11
-    - name: Install Android SDK
+        java-version: |
+          11
+          17
+    - name: Install Android SDK Manager
       uses: android-actions/setup-android@v3
       with:
         packages: ''
+    - name: Install Android SDK
       run: |
-        sdkmanager --install "ndk;21.4.7075529" --channel=3
-        sdkmanager "platforms;android-34"
+        sdkmanager --install "platform-tools" "platforms;$PLATFORM_VER"
+        sdkmanager --install "ndk;$NDK_VER" --channel=3
     - name: Build Native Libraries (Android)
       run: |
-        export PATH=$ANDROID_HOME/ndk-bundle/android-ndk-r21c:$PATH
+        export PATH=$ANDROID_HOME/ndk/$NDK_VER:$PATH
         export OUTPUT=$PWD/install_output
+        mkdir -p $OUTPUT
 
-        ./build-scripts/androidbuildlibs.sh NDK_LIBS_OUT=$OUTPUT APP_ABI="armeabi-v7a arm64-v8a x86"
-
+        # Build main setter
         pushd SDL2-CS/SDL2-CS-Android/SDL2AndroidMainSetter
-        ndk-build NDK_LIBS_OUT=$OUTPUT APP_ABI="armeabi-v7a arm64-v8a x86"
+        mkdir build
+        ndk-build NDK_PROJECT_PATH=null NDK_OUT=build NDK_LIBS_OUT=$OUTPUT APP_BUILD_SCRIPT=Android.mk NDK_APPLICATION_MK=Application.mk
+        rm -rf build # Clean up as it generates intermediate binaries in PR
         popd
+        
+        # Build SDL2
+        sed -i 's/ x86_64//g' ./build-scripts/androidbuildlibs.sh
+        ./build-scripts/androidbuildlibs.sh -j 4
+        cp -rv build/android/lib/* $OUTPUT
     - name: Build SDL2 Android Java
       run: |
+        export JAVA_HOME=$JAVA_HOME_11_X64
+        export PATH=$JAVA_HOME_11_X64/bin:$PATH
         export OUTPUT=$PWD/install_output
 
-        pushd SDL2-CS/SDL2-CS-Android/SDL2AndroidBridge
-        javac -cp $ANDROID_HOME/android-sdk/platforms/android-34/android.jar -encoding utf8 org/libsdl/app/*.java
+        # Build SDL2 Android Java part
+        cd android-project/app/src/main/java
+        javac -cp $ANDROID_HOME/platforms/$PLATFORM_VER/android.jar -encoding utf8 org/libsdl/app/*.java
         jar cvf $OUTPUT/SDL2AndroidBridge.jar org/libsdl/app/*.class
-        popd
-    - name: Prepare release directory (Android)
-      run: mkdir -p SDL2-CS/SDL2-CS-Android/native/android-{arm,arm64,x86}
     - name: Prepare release (Android)
       run: |
-        cp install_output/armeabi-v7a/libSDL2.so SDL2-CS/SDL2-CS-Android/native/android-arm/libSDL2.so
-        cp install_output/arm64-v8a/libSDL2.so SDL2-CS/SDL2-CS-Android/native/android-arm64/libSDL2.so
-        cp install_output/x86/libSDL2.so SDL2-CS/SDL2-CS-Android/native/android-x86/libSDL2.so
-        cp install_output/armeabi-v7a/libSDL2AndroidMainSetter.so SDL2-CS/SDL2-CS-Android/native/android-arm/libSDL2AndroidMainSetter.so
-        cp install_output/arm64-v8a/libSDL2AndroidMainSetter.so SDL2-CS/SDL2-CS-Android/native/android-arm64/libSDL2AndroidMainSetter.so
-        cp install_output/x86/libSDL2AndroidMainSetter.so SDL2-CS/SDL2-CS-Android/native/android-x86/libSDL2AndroidMainSetter.so
-        cp install_output/SDL2AndroidBridge.jar SDL2-CS/SDL2-CS-Android/Jars/SDL2AndroidBridge.ja
+        cp -rv install_output/* SDL2-CS/SDL2-CS-Android/
+        mv SDL2-CS/SDL2-CS-Android/SDL2AndroidBridge.jar SDL2-CS/SDL2-CS-Android/Jars/
     - name: Create pull request
       uses: peter-evans/create-pull-request@v4
       with:
