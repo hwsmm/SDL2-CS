@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net6.0-android</TargetFramework>
-		<SupportedOSPlatformVersion>21</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion>21.0</SupportedOSPlatformVersion>
 		<RootNamespace>SDL2_CS_Android</RootNamespace>
 		<OutputType>Library</OutputType>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -11,34 +11,34 @@
 		<EmbeddedJar Include="Jars\SDL2AndroidBridge.jar" />
 	</ItemGroup>
 	<ItemGroup>
-		<Content Include="$(MSBuildThisFileDirectory)native\android-arm\libSDL2.so">
+		<Content Include="armeabi-v7a\libSDL2.so">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<PackagePath>runtimes/android-arm/native</PackagePath>
+			<PackagePath>armeabi-v7a</PackagePath>
 			<Pack>true</Pack>
 		</Content>
-		<Content Include="$(MSBuildThisFileDirectory)native\android-arm\libSDL2AndroidMainSetter.so">
+		<Content Include="armeabi-v7a\libSDL2AndroidMainSetter.so">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<PackagePath>runtimes/android-arm/native</PackagePath>
+			<PackagePath>armeabi-v7a</PackagePath>
 			<Pack>true</Pack>
 		</Content>
-		<Content Include="$(MSBuildThisFileDirectory)native\android-arm64\libSDL2.so">
+		<Content Include="arm64-v8a\libSDL2.so">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<PackagePath>runtimes/android-arm64/native</PackagePath>
+			<PackagePath>arm64-v8a</PackagePath>
 			<Pack>true</Pack>
 		</Content>
-		<Content Include="$(MSBuildThisFileDirectory)native\android-arm64\libSDL2AndroidMainSetter.so">
+		<Content Include="arm64-v8a\libSDL2AndroidMainSetter.so">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<PackagePath>runtimes/android-arm64/native</PackagePath>
+			<PackagePath>arm64-v8a</PackagePath>
 			<Pack>true</Pack>
 		</Content>
-		<Content Include="$(MSBuildThisFileDirectory)native\android-x86\libSDL2.so">
+		<Content Include="x86\libSDL2.so">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<PackagePath>runtimes/android-x86/native</PackagePath>
+			<PackagePath>x86</PackagePath>
 			<Pack>true</Pack>
 		</Content>
-		<Content Include="$(MSBuildThisFileDirectory)native\android-x86\libSDL2AndroidMainSetter.so">
+		<Content Include="x86\libSDL2AndroidMainSetter.so">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<PackagePath>runtimes/android-x86/native</PackagePath>
+			<PackagePath>x86</PackagePath>
 			<Pack>true</Pack>
 		</Content>
 	</ItemGroup>
