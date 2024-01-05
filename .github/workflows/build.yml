@@ -90,19 +90,19 @@ jobs:
       run: sudo cmake --install build/ --prefix install_output --config Release
       if: runner.os != 'Windows'
     - name: Prepare release directory (Windows)
-      run: mkdir -Force SDL2-CS/native/${{ matrix.platform.name }}
+      run: mkdir -Force SDL2-CS/SDL2-CS/native/${{ matrix.platform.name }}
       if: runner.os == 'Windows'
     - name: Prepare release directory
-      run: mkdir -p SDL2-CS/native/${{ matrix.platform.name }}
+      run: mkdir -p SDL2-CS/SDL2-CS/native/${{ matrix.platform.name }}
       if: runner.os != 'Windows'
     - name: Prepare release (Windows)
-      run: cp install_output/bin/SDL2.dll SDL2-CS/native/${{ matrix.platform.name }}/SDL2.dll
+      run: cp install_output/bin/SDL2.dll SDL2-CS/SDL2-CS/native/${{ matrix.platform.name }}/SDL2.dll
       if: runner.os == 'Windows'
     - name: Prepare release (Linux)
-      run: cp install_output/lib/libSDL2-2.0.so.0 SDL2-CS/native/${{ matrix.platform.name }}/libSDL2.so
+      run: cp install_output/lib/libSDL2-2.0.so.0 SDL2-CS/SDL2-CS/native/${{ matrix.platform.name }}/libSDL2.so
       if: runner.os == 'Linux'
     - name: Prepare release (macOS)
-      run: cp install_output/lib/libSDL2-2.0.dylib SDL2-CS/native/${{ matrix.platform.name }}/libSDL2.dylib
+      run: cp install_output/lib/libSDL2-2.0.dylib SDL2-CS/SDL2-CS/native/${{ matrix.platform.name }}/libSDL2.dylib
       if: runner.os == 'macOS'
     - name: Create pull request
       uses: peter-evans/create-pull-request@v4
@@ -129,16 +129,16 @@ jobs:
     - name: Build (iOS)
       run: xcodebuild -project Xcode/SDL/SDL.xcodeproj -scheme xcFramework-iOS -configuration Release
     - name: Prepare release directory (iOS)
-      run: mkdir -p SDL2-CS/native/ios
+      run: mkdir -p SDL2-CS/SDL2-CS/native/ios
     - name: Prepare release (iOS)
       run: |
-        mkdir -p SDL2-CS/native/ios/SDL2.xcframework/ios-arm64/SDL2.framework;
-        mkdir -p SDL2-CS/native/ios/SDL2.xcframework/ios-arm64_x86_64-simulator/SDL2.framework;
-        cp Xcode/SDL/Products/SDL2.xcframework/Info.plist                                           SDL2-CS/native/ios/SDL2.xcframework/Info.plist;
-        cp Xcode/SDL/Products/SDL2.xcframework/ios-arm64/SDL2.framework/SDL2                        SDL2-CS/native/ios/SDL2.xcframework/ios-arm64/SDL2.framework/SDL2;
-        cp Xcode/SDL/Products/SDL2.xcframework/ios-arm64/SDL2.framework/Info.plist                  SDL2-CS/native/ios/SDL2.xcframework/ios-arm64/SDL2.framework/Info.plist;
-        cp Xcode/SDL/Products/SDL2.xcframework/ios-arm64_x86_64-simulator/SDL2.framework/SDL2       SDL2-CS/native/ios/SDL2.xcframework/ios-arm64_x86_64-simulator/SDL2.framework/SDL2;
-        cp Xcode/SDL/Products/SDL2.xcframework/ios-arm64_x86_64-simulator/SDL2.framework/Info.plist SDL2-CS/native/ios/SDL2.xcframework/ios-arm64_x86_64-simulator/SDL2.framework/Info.plist;
+        mkdir -p SDL2-CS/SDL2-CS/native/ios/SDL2.xcframework/ios-arm64/SDL2.framework;
+        mkdir -p SDL2-CS/SDL2-CS/native/ios/SDL2.xcframework/ios-arm64_x86_64-simulator/SDL2.framework;
+        cp Xcode/SDL/Products/SDL2.xcframework/Info.plist                                           SDL2-CS/SDL2-CS/native/ios/SDL2.xcframework/Info.plist;
+        cp Xcode/SDL/Products/SDL2.xcframework/ios-arm64/SDL2.framework/SDL2                        SDL2-CS/SDL2-CS/native/ios/SDL2.xcframework/ios-arm64/SDL2.framework/SDL2;
+        cp Xcode/SDL/Products/SDL2.xcframework/ios-arm64/SDL2.framework/Info.plist                  SDL2-CS/SDL2-CS/native/ios/SDL2.xcframework/ios-arm64/SDL2.framework/Info.plist;
+        cp Xcode/SDL/Products/SDL2.xcframework/ios-arm64_x86_64-simulator/SDL2.framework/SDL2       SDL2-CS/SDL2-CS/native/ios/SDL2.xcframework/ios-arm64_x86_64-simulator/SDL2.framework/SDL2;
+        cp Xcode/SDL/Products/SDL2.xcframework/ios-arm64_x86_64-simulator/SDL2.framework/Info.plist SDL2-CS/SDL2-CS/native/ios/SDL2.xcframework/ios-arm64_x86_64-simulator/SDL2.framework/Info.plist;
     - name: Create pull request
       uses: peter-evans/create-pull-request@v4
       with:
@@ -146,6 +146,69 @@ jobs:
         title: Update iOS SDL binaries
         body: This PR has been auto-genereated to update the iOS SDL binaries
         branch: update-ios-binaries
+        path: 'SDL2-CS'
+      env:
+        ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
+
+  build-android:
+    name: android
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        repository: 'libsdl-org/SDL'
+        ref: 'SDL2'
+    - uses: actions/checkout@v3
+      with:
+        path: 'SDL2-CS'
+    - name: Setup JDK 11
+      uses: actions/setup-java@v3
+      with:
+        distribution: microsoft
+        java-version: 11
+    - name: Install Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        packages: ''
+      run: |
+        sdkmanager --install "ndk;21.4.7075529" --channel=3
+        sdkmanager "platforms;android-34"
+    - name: Build Native Libraries (Android)
+      run: |
+        export PATH=$ANDROID_HOME/ndk-bundle/android-ndk-r21c:$PATH
+        export OUTPUT=$PWD/install_output
+
+        ./build-scripts/androidbuildlibs.sh NDK_LIBS_OUT=$OUTPUT APP_ABI="armeabi-v7a arm64-v8a x86"
+
+        pushd SDL2-CS/SDL2-CS-Android/SDL2AndroidMainSetter
+        ndk-build NDK_LIBS_OUT=$OUTPUT APP_ABI="armeabi-v7a arm64-v8a x86"
+        popd
+    - name: Build SDL2 Android Java
+      run: |
+        export OUTPUT=$PWD/install_output
+
+        pushd SDL2-CS/SDL2-CS-Android/SDL2AndroidBridge
+        javac -cp $ANDROID_HOME/android-sdk/platforms/android-34/android.jar -encoding utf8 org/libsdl/app/*.java
+        jar cvf $OUTPUT/SDL2AndroidBridge.jar org/libsdl/app/*.class
+        popd
+    - name: Prepare release directory (Android)
+      run: mkdir -p SDL2-CS/SDL2-CS-Android/native/android-{arm,arm64,x86}
+    - name: Prepare release (Android)
+      run: |
+        cp install_output/armeabi-v7a/libSDL2.so SDL2-CS/SDL2-CS-Android/native/android-arm/libSDL2.so
+        cp install_output/arm64-v8a/libSDL2.so SDL2-CS/SDL2-CS-Android/native/android-arm64/libSDL2.so
+        cp install_output/x86/libSDL2.so SDL2-CS/SDL2-CS-Android/native/android-x86/libSDL2.so
+        cp install_output/armeabi-v7a/libSDL2AndroidMainSetter.so SDL2-CS/SDL2-CS-Android/native/android-arm/libSDL2AndroidMainSetter.so
+        cp install_output/arm64-v8a/libSDL2AndroidMainSetter.so SDL2-CS/SDL2-CS-Android/native/android-arm64/libSDL2AndroidMainSetter.so
+        cp install_output/x86/libSDL2AndroidMainSetter.so SDL2-CS/SDL2-CS-Android/native/android-x86/libSDL2AndroidMainSetter.so
+        cp install_output/SDL2AndroidBridge.jar SDL2-CS/SDL2-CS-Android/Jars/SDL2AndroidBridge.ja
+    - name: Create pull request
+      uses: peter-evans/create-pull-request@v4
+      with:
+        commit-message: Update Android SDL binaries
+        title: Update Android SDL binaries
+        body: This PR has been auto-genereated to update the Android SDL binaries
+        branch: update-android-binaries
         path: 'SDL2-CS'
       env:
         ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
